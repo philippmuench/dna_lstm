@@ -70,6 +70,7 @@ plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 plt.savefig('accuracy.png')
+plt.clf()
 
 # summarize history for loss
 plt.plot(history.history['loss'])
@@ -79,6 +80,7 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 plt.savefig('loss.png')
+plt.clf()
 
 score, acc = model.evaluate(X_test, y_test, batch_size=1)
 print('Test score:', score)
