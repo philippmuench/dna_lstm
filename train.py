@@ -1,5 +1,7 @@
-from keras.layers import Dense, Dropout, LSTM, Embedding
+from keras.layers import Dense, Dropout, LSTM, Embedding, Activation, Lambda
+from keras.engine import Input, Model, InputSpec
 from keras.preprocessing.sequence import pad_sequences
+from keras.utils.data_utils import get_file
 from keras.models import Sequential
 from keras.models import model_from_json
 import pandas as pd
@@ -24,14 +26,6 @@ def load_data(test_split = 0.2):
     X_test = np.array(df['sequence'].values[train_size:])
     y_test = np.array(df['target'].values[train_size:])
     return pad_sequences(X_train), y_train, pad_sequences(X_test), y_test
-
-def load_test():
-    print ('Loading data...')
-    df = pd.read_csv(test_file)
-    df['sequence'] = df['sequence'].apply(lambda x: [int(letter_to_index(e)) for e in x])
-    df = df.reindex(np.random.permutation(df.index))
-    sample = df['sequence'].values[:len(df)]
-    return pad_sequences(sample)
 
 def create_model(input_length):
     print ('Creating model...')
@@ -85,9 +79,4 @@ plt.clf()
 score, acc = model.evaluate(X_test, y_test, batch_size=1)
 print('Test score:', score)
 print('Test accuracy:', acc)
-
-print('Predict sample...')
-X_case = load_test()
-prediction = model.predict(X_case, batch_size=128, verbose=0)
-print('prediction:', prediction)
 
