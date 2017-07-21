@@ -17,7 +17,7 @@ TCGTAACG,0
 ```
 virtualenv env
 source env/bin/activate
-pip install matplotlib keras h5py tensorflow numpy
+pip install matplotlib keras h5py tensorflow numpy pandas
 ```
 
 ### usuage
