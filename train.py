@@ -1,8 +1,10 @@
 from keras.layers import Dense, Dropout, LSTM, Embedding
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import Sequential
+from keras.models import model_from_json
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 input_file = 'input.csv'
 test_file = 'test.csv'
@@ -46,13 +48,37 @@ def create_model(input_length):
                   metrics=['accuracy'])
     return model
 
-
 X_train, y_train, X_test, y_test = load_data()
-
 model = create_model(len(X_train[0]))
 
 print ('Fitting model...')
-hist = model.fit(X_train, y_train, batch_size=128, nb_epoch=100, validation_split = 0.1, verbose = 1)
+history = model.fit(X_train, y_train, batch_size=128, nb_epoch=10, validation_split = 0.1, verbose = 1)
+
+# serialize model to JSON
+model_json = model.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+# serialize weights to HDF5
+model.save_weights("model.h5")
+print("Saved model to disk")
+
+# summarize history for accuracy
+plt.plot(history.history['acc'])
+plt.plot(history.history['val_acc'])
+plt.title('model accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.savefig('accuracy.png')
+
+# summarize history for loss
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'test'], loc='upper left')
+plt.savefig('loss.png')
 
 score, acc = model.evaluate(X_test, y_test, batch_size=1)
 print('Test score:', score)
