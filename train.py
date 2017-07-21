@@ -42,6 +42,25 @@ def create_model(input_length):
                   metrics=['accuracy'])
     return model
 
+def create_plots(history):
+    plt.plot(history.history['acc'])
+    plt.plot(history.history['val_acc'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig('accuracy.png')
+    plt.clf()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig('loss.png')
+    plt.clf()
+
 X_train, y_train, X_test, y_test = load_data()
 model = create_model(len(X_train[0]))
 
@@ -56,26 +75,9 @@ with open("model.json", "w") as json_file:
 model.save_weights("model.h5")
 print("Saved model to disk")
 
-# summarize history for accuracy
-plt.plot(history.history['acc'])
-plt.plot(history.history['val_acc'])
-plt.title('model accuracy')
-plt.ylabel('accuracy')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
-plt.savefig('accuracy.png')
-plt.clf()
+create_plots(history)
 
 # summarize history for loss
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model loss')
-plt.ylabel('loss')
-plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper left')
-plt.savefig('loss.png')
-plt.clf()
-
 score, acc = model.evaluate(X_test, y_test, batch_size=1)
 print('Test score:', score)
 print('Test accuracy:', acc)
