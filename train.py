@@ -6,11 +6,19 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.utils import plot_model
 from keras.utils.data_utils import get_file
 from keras.models import Sequential
+from keras import backend as K
 from keras.models import model_from_json
+from kerastoolbox.visu import plot_weights
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import theano
+import tensorflow as tf
 
+
+RNN_HIDDEN_DIM = 256
+EMBEDDING_DIM = 50
+epochs = 1000
 
 input_file = 'input.csv'
 test_file = 'test.csv'
@@ -31,13 +39,15 @@ def load_data(test_split = 0.2):
     y_test = np.array(df['target'].values[train_size:])
     return pad_sequences(X_train), y_train, pad_sequences(X_test), y_test
 
-def create_model(input_length):
+def create_model(input_length, rnn_hidden_dim=RNN_HIDDEN_DIM):
     print ('Creating model...')
     model = Sequential()
-    model.add(Embedding(input_dim = 188, output_dim = 50, input_length = input_length))
-    model.add(LSTM(output_dim=256, activation='sigmoid', inner_activation='hard_sigmoid', return_sequences=True))
+    model.add(Embedding(input_dim = 188, output_dim = EMBEDDING_DIM, input_length = input_length, name='embedding_layer'))
+
+    model.add(LSTM(output_dim=rnn_hidden_dim, activation='sigmoid', inner_activation='hard_sigmoid', return_sequences=True, name='recurrent_layer'))
+
     model.add(Dropout(0.5))
-    model.add(LSTM(output_dim=256, activation='sigmoid', inner_activation='hard_sigmoid'))
+    model.add(LSTM(output_dim=rnn_hidden_dim, activation='sigmoid', inner_activation='hard_sigmoid'))
     model.add(Dropout(0.5))
     model.add(Dense(1, activation='sigmoid'))
     print ('Compiling...')
@@ -69,7 +79,8 @@ X_train, y_train, X_test, y_test = load_data()
 model = create_model(len(X_train[0]))
 
 print ('Fitting model...')
-history = model.fit(X_train, y_train, batch_size=128, nb_epoch=10, validation_split = 0.1, verbose = 1)
+history = model.fit(X_train, y_train, batch_size=128, nb_epoch=epochs, validation_split = 0.1, verbose = 1)
+
 
 # serialize model to JSON
 model_json = model.to_json()
@@ -84,6 +95,7 @@ plot_model(model, to_file='model.png')
 
 # summarize history for loss
 score, acc = model.evaluate(X_test, y_test, batch_size=1)
+
 print('Test score:', score)
 print('Test accuracy:', acc)
 
