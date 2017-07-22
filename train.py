@@ -1,12 +1,16 @@
+import pydot
+import graphviz
 from keras.layers import Dense, Dropout, LSTM, Embedding, Activation, Lambda
 from keras.engine import Input, Model, InputSpec
 from keras.preprocessing.sequence import pad_sequences
+from keras.utils import plot_model
 from keras.utils.data_utils import get_file
 from keras.models import Sequential
 from keras.models import model_from_json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
 
 input_file = 'input.csv'
 test_file = 'test.csv'
@@ -76,6 +80,7 @@ model.save_weights("model.h5")
 print("Saved model to disk")
 
 create_plots(history)
+plot_model(model, to_file='model.png')
 
 # summarize history for loss
 score, acc = model.evaluate(X_test, y_test, batch_size=1)
