@@ -12,12 +12,16 @@ ACCCTAAG,1
 TCGTAACG,0
 ```
 
+![alt text](model.png)
+
+
 ## install
 
 ```
+sudo apt-get install graphviz
 virtualenv env
 source env/bin/activate
-pip install matplotlib keras h5py tensorflow numpy
+pip install matplotlib keras h5py tensorflow numpy pandas pydot-ng pydot
 ```
 
 ### usuage
