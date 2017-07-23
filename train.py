@@ -6,6 +6,7 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.utils import plot_model
 from keras.utils.data_utils import get_file
 from keras.models import Sequential
+from keras.callbacks import ModelCheckpoint
 from keras import backend as K
 from keras.models import model_from_json
 from kerastoolbox.visu import plot_weights
@@ -15,13 +16,9 @@ import matplotlib.pyplot as plt
 import theano
 import tensorflow as tf
 
+epochs = 10
 
-RNN_HIDDEN_DIM = 256
-EMBEDDING_DIM = 50
-epochs = 1000
-
-input_file = 'input.csv'
-test_file = 'test.csv'
+input_file = 'input_small.csv'
 
 def letter_to_index(letter):
     _alphabet = 'ATGC'
@@ -39,16 +36,14 @@ def load_data(test_split = 0.2):
     y_test = np.array(df['target'].values[train_size:])
     return pad_sequences(X_train), y_train, pad_sequences(X_test), y_test
 
-def create_model(input_length, rnn_hidden_dim=RNN_HIDDEN_DIM):
+def create_model(input_length):
     print ('Creating model...')
     model = Sequential()
-    model.add(Embedding(input_dim = 188, output_dim = EMBEDDING_DIM, input_length = input_length, name='embedding_layer'))
-
-    model.add(LSTM(output_dim=rnn_hidden_dim, activation='sigmoid', inner_activation='hard_sigmoid', return_sequences=True, name='recurrent_layer'))
-
-    model.add(Dropout(0.5))
-    model.add(LSTM(output_dim=rnn_hidden_dim, activation='sigmoid', inner_activation='hard_sigmoid'))
-    model.add(Dropout(0.5))
+    model.add(Embedding(input_dim = 200, output_dim = 150, input_length = input_length))
+    model.add(LSTM(output_dim=128, activation='sigmoid', inner_activation='hard_sigmoid', return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(output_dim=128, activation='sigmoid', inner_activation='hard_sigmoid'))
+    model.add(Dropout(0.2))
     model.add(Dense(1, activation='sigmoid'))
     print ('Compiling...')
     model.compile(loss='binary_crossentropy',
@@ -78,9 +73,14 @@ def create_plots(history):
 X_train, y_train, X_test, y_test = load_data()
 model = create_model(len(X_train[0]))
 
-print ('Fitting model...')
-history = model.fit(X_train, y_train, batch_size=128, nb_epoch=epochs, validation_split = 0.1, verbose = 1)
+# checkpoint
+filepath="checkpoints/weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
+checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
+callbacks_list = [checkpoint]
 
+
+print ('Fitting model...')
+history = model.fit(X_train, y_train, batch_size=100, epochs=epochs, callbacks=callbacks_list, validation_split = 0.1, verbose = 1)
 
 # serialize model to JSON
 model_json = model.to_json()
