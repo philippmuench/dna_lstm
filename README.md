@@ -3,17 +3,18 @@ LSTM for binary sequence classification
 
 ## about
 
-structure of training data (see `input.csv`)
+structure of training data (see `cami_10k.csv`)
 
 ```
-sequence,class
+sequence,target
 ACGTAGCT,1
 ACCCTAAG,1
 TCGTAACG,0
+ACTGACCG,0
+...
 ```
 
 ![alt text](model.png)
-
 
 ## install
 
