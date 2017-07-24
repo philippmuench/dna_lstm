@@ -13,7 +13,6 @@ from keras.callbacks import ModelCheckpoint
 from keras import backend as K
 from keras.preprocessing import sequence
 from keras.models import model_from_json
-from kerastoolbox.visu import plot_weights
 import os
 import pydot
 import graphviz

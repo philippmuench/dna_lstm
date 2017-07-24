@@ -21,7 +21,7 @@ TCGTAACG,0
 sudo apt-get install graphviz
 virtualenv env
 source env/bin/activate
-pip install matplotlib keras h5py tensorflow numpy pandas pydot-ng pydot
+pip install matplotlib keras h5py tensorflow numpy pandas pydot-ng pydot graphviz
 ```
 
 ### usuage
