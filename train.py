@@ -19,17 +19,17 @@ import pydot
 import graphviz
 
 EPCOHS = 10 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
-BATCH_SIZE = 256 # a set of N samples. The samples in a batch are processed independently, in parallel. If training, a batch results in only one update to the model.
+BATCH_SIZE = 100 # a set of N samples. The samples in a batch are processed independently, in parallel. If training, a batch results in only one update to the model.
 INPUT_DIM = 4 # a vocabulary of 4 words in case of fnn sequence
 OUTPUT_DIM = 512
-RNN_HIDDEN_DIM = 128
+RNN_HIDDEN_DIM = 512
 DROPOUT_RATIO = 0.2 # proportion of neurones not used for training
-MAXLEN = 200 # cuts text after number of these characters in pad_sequences
+MAXLEN = 201 # cuts text after number of these characters in pad_sequences
 
 checkpoint_dir ='checkpoints'
 os.path.exists(checkpoint_dir)
 
-input_file = 'cami_10k_rand.txt'
+input_file = 'cami_small_rand.txt'
 
 def letter_to_index(letter):
     _alphabet = 'ATGC'
@@ -55,7 +55,9 @@ def create_model(input_length, rnn_hidden_dim = RNN_HIDDEN_DIM, output_dim = OUT
     # we start off with an efficient embedding layer which maps our vocab indices into embedding_dims dimensions
     model.add(Embedding(input_dim = INPUT_DIM, output_dim = output_dim, input_length = input_length, name='embedding_layer'))
     model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer'))
-    model.add(Lambda(lambda x: x[:, -1, :], output_shape=(rnn_hidden_dim, ), name='last_step_layer'))
+    model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, name='recurrent_layer2'))
+    model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, name='recurrent_layer3'))
+   # model.add(Lambda(lambda x: x[:, -1, :], output_shape=(rnn_hidden_dim, ), name='last_step_layer'))
     # We project onto a single unit output layer, and squash it with a sigmoid:
     model.add(Dense(1, activation='sigmoid', name='output_layer'))
     print ('Compiling...')
