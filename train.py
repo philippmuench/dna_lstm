@@ -13,11 +13,12 @@ from keras.callbacks import ModelCheckpoint
 from keras import backend as K
 from keras.preprocessing import sequence
 from keras.models import model_from_json
+from kerastoolbox.visu import plot_weights
 import os
 import pydot
 import graphviz
 
-EPCOHS = 3 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
+EPCOHS = 10 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
 BATCH_SIZE = 256 # a set of N samples. The samples in a batch are processed independently, in parallel. If training, a batch results in only one update to the model.
 INPUT_DIM = 4 # a vocabulary of 4 words in case of fnn sequence
 OUTPUT_DIM = 512
@@ -28,7 +29,7 @@ MAXLEN = 200 # cuts text after number of these characters in pad_sequences
 checkpoint_dir ='checkpoints'
 os.path.exists(checkpoint_dir)
 
-input_file = 'input_med.csv'
+input_file = 'cami_10k.txt'
 
 def letter_to_index(letter):
     _alphabet = 'ATGC'
