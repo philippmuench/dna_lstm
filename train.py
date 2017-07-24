@@ -29,7 +29,7 @@ MAXLEN = 200 # cuts text after number of these characters in pad_sequences
 checkpoint_dir ='checkpoints'
 os.path.exists(checkpoint_dir)
 
-input_file = 'cami_10k.txt'
+input_file = 'cami_10k_rand.txt'
 
 def letter_to_index(letter):
     _alphabet = 'ATGC'
