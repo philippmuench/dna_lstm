@@ -2,6 +2,8 @@ import tensorflow as tf
 import theano
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 from keras.layers import Dense, Dropout, LSTM, Embedding, Activation, Lambda
 from keras.engine import Input, Model, InputSpec
@@ -22,8 +24,8 @@ EPCOHS = 50 #  an arbitrary cutoff, generally defined as "one pass over the enti
 BATCH_SIZE = 100 # a set of N samples. The samples in a batch are processed independently, in parallel. If training, a batch results in only one update to the model.
 INPUT_DIM = 4 # a vocabulary of 4 words in case of fnn sequence
 OUTPUT_DIM = 512
-RNN_HIDDEN_DIM = 512
-DROPOUT_RATIO = 0.2 # proportion of neurones not used for training
+RNN_HIDDEN_DIM = 256
+DROPOUT_RATIO = 0.5 # proportion of neurones not used for training
 MAXLEN = 201 # cuts text after number of these characters in pad_sequences
 
 checkpoint_dir ='checkpoints'
