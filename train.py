@@ -20,24 +20,24 @@ import os
 import pydot
 import graphviz
 
-EPCOHS = 50 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
-BATCH_SIZE = 100 # a set of N samples. The samples in a batch are processed independently, in parallel. If training, a batch results in only one update to the model.
-INPUT_DIM = 4 # a vocabulary of 4 words in case of fnn sequence
-OUTPUT_DIM = 512
-RNN_HIDDEN_DIM = 256
-DROPOUT_RATIO = 0.5 # proportion of neurones not used for training
+EPCOHS = 1 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
+BATCH_SIZE = 10 # a set of N samples. The samples in a batch are processed independently, in parallel. If training, a batch results in only one update to the model.
+INPUT_DIM = 5 # a vocabulary of 5 words in case of fnn sequence (ATCGN)
+OUTPUT_DIM = 256
+RNN_HIDDEN_DIM = 128
+DROPOUT_RATIO = 0.3 # proportion of neurones not used for training
 MAXLEN = 201 # cuts text after number of these characters in pad_sequences
 
 checkpoint_dir ='checkpoints'
 os.path.exists(checkpoint_dir)
 
-input_file = 'cami_small_rand.txt'
+input_file = 'cami_5k.txt'
 
 def letter_to_index(letter):
-    _alphabet = 'ATGC'
+    _alphabet = 'ATGCN'
     return next((i for i, _letter in enumerate(_alphabet) if _letter == letter), None)
 
-def load_data(test_split = 0.2, maxlen = MAXLEN):
+def load_data(test_split = 0.33, maxlen = MAXLEN):
     print ('Loading data...')
     df = pd.read_csv(input_file)
     df['sequence'] = df['sequence'].apply(lambda x: [int(letter_to_index(e)) for e in x])
@@ -58,8 +58,8 @@ def create_model(input_length, rnn_hidden_dim = RNN_HIDDEN_DIM, output_dim = OUT
     model.add(Embedding(input_dim = INPUT_DIM, output_dim = output_dim, input_length = input_length, name='embedding_layer'))
     model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer'))
     model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer2'))
-    model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, name='recurrent_layer3'))
-   # model.add(Lambda(lambda x: x[:, -1, :], output_shape=(rnn_hidden_dim, ), name='last_step_layer'))
+    model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer3'))
+    model.add(Lambda(lambda x: x[:, -1, :], output_shape=(rnn_hidden_dim, ), name='last_step_layer'))
     # We project onto a single unit output layer, and squash it with a sigmoid:
     model.add(Dense(1, activation='sigmoid', name='output_layer'))
     print ('Compiling...')
