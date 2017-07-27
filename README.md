@@ -1,6 +1,8 @@
 # dna_lstm
 LSTM for binary sequence classification
 
+- kmer based SVM/RF approach: https://github.com/philippmuench/plasmidminer
+
 ## about
 
 structure of training data (see `cami_10k.csv`)
