@@ -35,8 +35,6 @@ python train.py
 
 final model will saved to `model.json` and `model.h5` plus plots `accuracy.png` and `loss.png`
 
-![alt text](accuracy.png)
-![alt text](loss.png)
 
 #### prediction
 
