@@ -5,12 +5,13 @@ import numpy as np
 import matplotlib
 matplotlib.use('pdf')
 import matplotlib.pyplot as plt
-from keras.layers import Dense, Dropout, LSTM, Embedding, Activation, Lambda
+from keras.layers import Dense, Dropout, LSTM, Embedding, Activation, Lambda, Bidirectional
 from keras.engine import Input, Model, InputSpec
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils import plot_model
 from keras.utils.data_utils import get_file
 from keras.models import Sequential
+from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint
 from keras import backend as K
 from keras.preprocessing import sequence
@@ -20,14 +21,14 @@ import os
 import pydot
 import graphviz
 
-EPCOHS = 10 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
+EPCOHS = 100 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
 BATCH_SIZE = 10 # a set of N samples. The samples in a batch are processed` independently, in parallel. If training, a batch results in only one update to the model.
 INPUT_DIM = 4 # a vocabulary of 5 words in case of fnn sequence (ATCGN)
 OUTPUT_DIM = 128
 RNN_HIDDEN_DIM = 128
-DROPOUT_RATIO = 0.1 # proportion of neurones not used for training
+DROPOUT_RATIO = 0.2 # proportion of neurones not used for training
 MAXLEN = 500 # cuts text after number of these characters in pad_sequences
-
+LEARNING_RATE = 0.01
 checkpoint_dir ='checkpoints'
 os.path.exists(checkpoint_dir)
 
@@ -37,7 +38,7 @@ def letter_to_index(letter):
     _alphabet = 'ATGC'
     return next((i for i, _letter in enumerate(_alphabet) if _letter == letter), None)
 
-def load_data(test_split = 0.2, maxlen = MAXLEN):
+def load_data(test_split = 0.33, maxlen = MAXLEN):
     print ('Loading data...')
     df = pd.read_csv(input_file)
     df['sequence'] = df['sequence'].apply(lambda x: [int(letter_to_index(e)) for e in x])
@@ -51,20 +52,31 @@ def load_data(test_split = 0.2, maxlen = MAXLEN):
     print('Average test sequence length: {}'.format(np.mean(list(map(len, X_test)), dtype=int)))
     return pad_sequences(X_train, maxlen=maxlen), y_train, pad_sequences(X_test, maxlen=maxlen), y_test
 
+
+def create_lstm_bidirectional(input_length, rnn_hidden_dim = RNN_HIDDEN_DIM, output_dim = OUTPUT_DIM, input_dim = INPUT_DIM, dropout = DROPOUT_RATIO):
+    model = Sequential()
+    model.add(Embedding(input_dim = INPUT_DIM, output_dim = output_dim, input_length = input_length, name='embedding_layer'))
+    model.add(Bidirectional(LSTM(64)))
+    model.add(Dropout(0.5))
+    model.add(Dense(1, activation='sigmoid'))
+    model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
+    return model
+
+
 def create_model(input_length, rnn_hidden_dim = RNN_HIDDEN_DIM, output_dim = OUTPUT_DIM, input_dim = INPUT_DIM, dropout = DROPOUT_RATIO):
     print ('Creating model...')
     model = Sequential()
     # we start off with an efficient embedding layer which maps our vocab indices into embedding_dims dimensions
     model.add(Embedding(input_dim = INPUT_DIM, output_dim = output_dim, input_length = input_length, name='embedding_layer'))
-    model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer'))
-    model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer2'))
-#    model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer3'))
+    model.add(Bidirectional(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer')))
+   # model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer2'))
+    model.add(Bidirectional(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer3')))
     model.add(Lambda(lambda x: x[:, -1, :], output_shape=(rnn_hidden_dim, ), name='last_step_layer'))
     # We project onto a single unit output layer, and squash it with a sigmoid:
     model.add(Dense(1, activation='sigmoid', name='output_layer'))
     print ('Compiling...')
     model.compile(loss='binary_crossentropy',
-                  optimizer='adam',
+                  optimizer=Adam(lr=LEARNING_RATE),
                   metrics=['accuracy'])
     return model
 
@@ -92,8 +104,8 @@ if __name__ == '__main__':
     X_train, y_train, X_test, y_test = load_data()
     print(type(X_train))
     print(X_train.shape)
-    model = create_model(len(X_train[0]))
-
+   # model = create_model(len(X_train[0]))
+    model = create_lstm_bidirectional(len(X_train[0])) 
     # checkpoint
     filepath= checkpoint_dir + "/weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
