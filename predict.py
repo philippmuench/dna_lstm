@@ -77,11 +77,12 @@ print("Loaded model from disk")
 
 print('Predict samples...')
 X = load_test()
-y = model.predict(X, batch_size=128, verbose=0)
+print(X.shape)
+y = model.predict(X, verbose=0)
 print('prediction:', y)
 
 # visualize
-all_function, output_function = visualize_model(model, include_gradients=True)
+#all_function, output_function = visualize_model(model, include_gradients=True)
 #cores, rnn_values, rnn_gradients, W_i = all_function([X])
 #print(scores.shape, rnn_values.shape, rnn_gradients.shape, W_i.shape)
 
