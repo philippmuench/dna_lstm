@@ -9,18 +9,36 @@ from sklearn import decomposition
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from Bio import SeqIO
+import argparse
 
-test_file = 'test.csv'
-model_file = 'model.json'
-model_weights = 'model.h5'
+CHUNK_SIZE = 150
 
 def letter_to_index(letter):
     _alphabet = 'ATGC'
     return next((i for i, _letter in enumerate(_alphabet) if _letter == letter), None)
 
-def load_test():
+def make_chunks_from_fasta(input_file):
     print ('Loading data...')
-    df = pd.read_csv(test_file)
+    # create fasta fragments with size of 150
+    with open('input_fragments.csv',"w") as f:
+        f.write(str('sequence\n'))
+        for seq_record in SeqIO.parse(input_file, "fasta"):
+            for i in range(0, len(seq_record.seq) - int(CHUNK_SIZE) - 1, CHUNK_SIZE) :
+               f.write(str(seq_record.seq[i:i + int(CHUNK_SIZE)]) + "\n")
+    with open('input_names.csv',"w") as f:
+        f.write(str('name\n'))
+        for seq_record in SeqIO.parse(input_file, "fasta"):
+            for i in range(0, len(seq_record.seq) - int(CHUNK_SIZE) - 1, CHUNK_SIZE) :
+                f.write(str(seq_record.id) + "\n")
+
+def get_ids():
+    dat = pd.read_csv('input_names.csv', sep=",")
+    return dat
+
+def load_test(input_file):
+    print ('Loading data...')
+    df = pd.read_csv(input_file)
     df['sequence'] = df['sequence'].apply(lambda x: [int(letter_to_index(e)) for e in x])
     df = df.reindex(np.random.permutation(df.index))
     sample = df['sequence'].values[:len(df)]
@@ -66,29 +84,38 @@ def get_compare_embeddings(original_embeddings, tuned_embeddings, vocab, dimredu
     return compare_embeddings
 
 
-print ('Loading model...')
-json_file = open(model_file, 'r')
-loaded_model_json = json_file.read()
-json_file.close()
-model = model_from_json(loaded_model_json)
-# load weights into new model
-model.load_weights(model_weights)
-print("Loaded model from disk")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input', action='store', dest='input', help='Path to input FASTA file (.fasta)', default='test.fasta')
+    parser.add_argument('-m', '--model', action='store', dest='model', help='Path to model (.json)', default='model.json')
+    parser.add_argument('-w', '--weights', action='store', dest='weights', help='Path to model weights (.h5)', default='model.h5')
+    parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+    args = parser.parse_args()
+ 
+    print ('Loading model...')
+    json_file = open(args.model, 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    model = model_from_json(loaded_model_json)
+    # load weights into new model
+    
+    print("Load model from disk")
+    model.load_weights(args.weights)
+    
+    print("Make chunks")
+    make_chunks_from_fasta(args.input)
 
-print('Predict samples...')
-X = load_test()
-print(X.shape)
-y = model.predict(X, verbose=0)
-print('prediction:', y)
+    print('Predict samples...')
+    X = load_test('input_fragments.csv')
+    y = model.predict(X, verbose=0)
+    ids = get_ids()
+    probabilities = y[:,0]
+    df = pd.concat([ids, pd.DataFrame(probabilities)], axis=1)
+    df.to_csv('full_report.txt', index=False)
+    df = df.set_index(['name']).stack().groupby(level=0).agg('mean')
 
-# visualize
-#all_function, output_function = visualize_model(model, include_gradients=True)
-#cores, rnn_values, rnn_gradients, W_i = all_function([X])
-#print(scores.shape, rnn_values.shape, rnn_gradients.shape, W_i.shape)
+    df_masked = df.mask(df > .5, 'plasmid')
+    df_masked = df_masked.mask(df_masked <= .5, 'chromosome')
+    df_masked.to_csv('report_string.txt', index=True)
 
-#time_distributed_scores = map(lambda x: output_function([x]), rnn_values)
-#print("Time distributed (word-level) scores:", map(lambda x: x[0], time_distributed_scores))
-
-#embeddings = model.get_weights()[0]
-#compare_embeddings = get_compare_embeddings(embeddings, embeddings, vocab, dimreduce_type="pca", random_state=0)
-#print("Embeddings drift:", compare_embeddings('d'))
+    print(df_masked)
