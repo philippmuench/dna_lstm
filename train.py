@@ -13,22 +13,21 @@ from keras.utils.data_utils import get_file
 from keras.models import Sequential
 from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint
+from sklearn.utils import class_weight
 from keras import backend as K
 from keras.preprocessing import sequence
 from keras.models import model_from_json
-from kerastoolbox.visu import plot_weights
 import os
 import pydot
 import graphviz
 
-EPCOHS = 500 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
-BATCH_SIZE = 500 # a set of N samples. The samples in a batch are processed` independently, in parallel. If training, a batch results in only one update to the model.
-INPUT_DIM = 4 # a vocabulary of 5 words in case of fnn sequence (ATCGN)
-OUTPUT_DIM = 50
-RNN_HIDDEN_DIM = 60
+EPCOHS = 100 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
+BATCH_SIZE = 200 # a set of N samples. The samples in a batch are processed` independently, in parallel. If training, a batch results in only one update to the model.
+INPUT_DIM = 4 # a vocabulary of 4 words in case of fnn sequence (ATCG)
+OUTPUT_DIM = 50 # Embedding output
+RNN_HIDDEN_DIM = 62
 DROPOUT_RATIO = 0.2 # proportion of neurones not used for training
 MAXLEN = 150 # cuts text after number of these characters in pad_sequences
-LEARNING_RATE = 0.05
 checkpoint_dir ='checkpoints'
 os.path.exists(checkpoint_dir)
 
@@ -52,34 +51,15 @@ def load_data(test_split = 0.1, maxlen = MAXLEN):
     print('Average test sequence length: {}'.format(np.mean(list(map(len, X_test)), dtype=int)))
     return pad_sequences(X_train, maxlen=maxlen), y_train, pad_sequences(X_test, maxlen=maxlen), y_test
 
-
-def create_lstm_bidirectional(input_length, rnn_hidden_dim = RNN_HIDDEN_DIM, output_dim = OUTPUT_DIM, input_dim = INPUT_DIM, dropout = DROPOUT_RATIO):
+def create_lstm(input_length, rnn_hidden_dim = RNN_HIDDEN_DIM, output_dim = OUTPUT_DIM, input_dim = INPUT_DIM, dropout = DROPOUT_RATIO):
     model = Sequential()
     model.add(Embedding(input_dim = INPUT_DIM, output_dim = output_dim, input_length = input_length, name='embedding_layer'))
-    model.add(Bidirectional(LSTM(64, return_sequences=True)))
-    model.add(Dropout(0.2))
-    model.add(Bidirectional(LSTM(64)))
-    model.add(Dropout(0.2))
+    model.add(Bidirectional(LSTM(rnn_hidden_dim, return_sequences=True)))
+    model.add(Dropout(dropout))
+    model.add(Bidirectional(LSTM(rnn_hidden_dim)))
+    model.add(Dropout(dropout))
     model.add(Dense(1, activation='sigmoid'))
     model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
-    return model
-
-
-def create_model(input_length, rnn_hidden_dim = RNN_HIDDEN_DIM, output_dim = OUTPUT_DIM, input_dim = INPUT_DIM, dropout = DROPOUT_RATIO):
-    print ('Creating model...')
-    model = Sequential()
-    # we start off with an efficient embedding layer which maps our vocab indices into embedding_dims dimensions
-    model.add(Embedding(input_dim = INPUT_DIM, output_dim = output_dim, input_length = input_length, name='embedding_layer'))
-    model.add(Bidirectional(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer')))
-   # model.add(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer2'))
-    model.add(Bidirectional(LSTM(units=rnn_hidden_dim, dropout = dropout, recurrent_dropout= dropout, return_sequences=True, name='recurrent_layer3')))
-    model.add(Lambda(lambda x: x[:, -1, :], output_shape=(rnn_hidden_dim, ), name='last_step_layer'))
-    # We project onto a single unit output layer, and squash it with a sigmoid:
-    model.add(Dense(1, activation='sigmoid', name='output_layer'))
-    print ('Compiling...')
-    model.compile(loss='binary_crossentropy',
-                  optimizer=Adam(lr=LEARNING_RATE),
-                  metrics=['accuracy'])
     return model
 
 def create_plots(history):
@@ -103,31 +83,31 @@ def create_plots(history):
 
 if __name__ == '__main__':
     # train
-    X_train, y_train, X_test, y_test = load_data()
-    print(type(X_train))
-    print(X_train.shape)
-    print(len(X_train[0]))
-   # model = create_model(len(X_train[0]))
-    model = create_lstm_bidirectional(len(X_train[0])) 
-    # checkpoint
+    X_train, y_train, X_test, y_test = load_data()    
+    model = create_lstm(len(X_train[0])) 
+
+    # save checkpoint
     filepath= checkpoint_dir + "/weights-improvement-{epoch:02d}-{val_acc:.2f}.hdf5"
     checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
     callbacks_list = [checkpoint]
 
     print ('Fitting model...')
-    history = model.fit(X_train, y_train, batch_size=BATCH_SIZE, epochs=EPCOHS, callbacks=callbacks_list, validation_split = 0.1, verbose = 1)
+    class_weight = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
+    history = model.fit(X_train, y_train, batch_size=BATCH_SIZE, class_weight=class_weight,
+        epochs=EPCOHS, callbacks=callbacks_list, validation_split = 0.1, verbose = 1)
 
     # serialize model to JSON
     model_json = model.to_json()
     with open("model.json", "w") as json_file:
         json_file.write(model_json)
+
     # serialize weights to HDF5
     model.save_weights("model.h5")
     print("Saved model to disk")
     create_plots(history)
     plot_model(model, to_file='model.png')
 
-    # summarize history for loss
+    # validate model on unseen data
     score, acc = model.evaluate(X_test, y_test, batch_size=BATCH_SIZE)
-    print('Test score:', score)
-    print('Test accuracy:', acc)
+    print('Validation score:', score)
+    print('Validation accuracy:', acc)
