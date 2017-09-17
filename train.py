@@ -22,7 +22,7 @@ import pydot
 import graphviz
 
 EPCOHS = 100 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
-BATCH_SIZE = 200 # a set of N samples. The samples in a batch are processed` independently, in parallel. If training, a batch results in only one update to the model.
+BATCH_SIZE = 500 # a set of N samples. The samples in a batch are processed` independently, in parallel. If training, a batch results in only one update to the model.
 INPUT_DIM = 4 # a vocabulary of 4 words in case of fnn sequence (ATCG)
 OUTPUT_DIM = 50 # Embedding output
 RNN_HIDDEN_DIM = 62
@@ -31,7 +31,7 @@ MAXLEN = 150 # cuts text after number of these characters in pad_sequences
 checkpoint_dir ='checkpoints'
 os.path.exists(checkpoint_dir)
 
-input_file = 'train2.csv'
+input_file = 'train_cami_r.csv'
 
 def letter_to_index(letter):
     _alphabet = 'ATGC'
@@ -93,6 +93,7 @@ if __name__ == '__main__':
 
     print ('Fitting model...')
     class_weight = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
+    print(class_weight)
     history = model.fit(X_train, y_train, batch_size=BATCH_SIZE, class_weight=class_weight,
         epochs=EPCOHS, callbacks=callbacks_list, validation_split = 0.1, verbose = 1)
 
