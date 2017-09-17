@@ -21,24 +21,24 @@ import os
 import pydot
 import graphviz
 
-EPCOHS = 100 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
-BATCH_SIZE = 10 # a set of N samples. The samples in a batch are processed` independently, in parallel. If training, a batch results in only one update to the model.
+EPCOHS = 500 #  an arbitrary cutoff, generally defined as "one pass over the entire dataset", used to separate training into distinct phases, which is useful for logging and periodic evaluation.
+BATCH_SIZE = 500 # a set of N samples. The samples in a batch are processed` independently, in parallel. If training, a batch results in only one update to the model.
 INPUT_DIM = 4 # a vocabulary of 5 words in case of fnn sequence (ATCGN)
-OUTPUT_DIM = 128
-RNN_HIDDEN_DIM = 128
+OUTPUT_DIM = 50
+RNN_HIDDEN_DIM = 60
 DROPOUT_RATIO = 0.2 # proportion of neurones not used for training
-MAXLEN = 500 # cuts text after number of these characters in pad_sequences
-LEARNING_RATE = 0.01
+MAXLEN = 150 # cuts text after number of these characters in pad_sequences
+LEARNING_RATE = 0.05
 checkpoint_dir ='checkpoints'
 os.path.exists(checkpoint_dir)
 
-input_file = 'train.csv'
+input_file = 'train2.csv'
 
 def letter_to_index(letter):
     _alphabet = 'ATGC'
     return next((i for i, _letter in enumerate(_alphabet) if _letter == letter), None)
 
-def load_data(test_split = 0.33, maxlen = MAXLEN):
+def load_data(test_split = 0.1, maxlen = MAXLEN):
     print ('Loading data...')
     df = pd.read_csv(input_file)
     df['sequence'] = df['sequence'].apply(lambda x: [int(letter_to_index(e)) for e in x])
@@ -56,8 +56,10 @@ def load_data(test_split = 0.33, maxlen = MAXLEN):
 def create_lstm_bidirectional(input_length, rnn_hidden_dim = RNN_HIDDEN_DIM, output_dim = OUTPUT_DIM, input_dim = INPUT_DIM, dropout = DROPOUT_RATIO):
     model = Sequential()
     model.add(Embedding(input_dim = INPUT_DIM, output_dim = output_dim, input_length = input_length, name='embedding_layer'))
+    model.add(Bidirectional(LSTM(64, return_sequences=True)))
+    model.add(Dropout(0.2))
     model.add(Bidirectional(LSTM(64)))
-    model.add(Dropout(0.5))
+    model.add(Dropout(0.2))
     model.add(Dense(1, activation='sigmoid'))
     model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
     return model
@@ -104,6 +106,7 @@ if __name__ == '__main__':
     X_train, y_train, X_test, y_test = load_data()
     print(type(X_train))
     print(X_train.shape)
+    print(len(X_train[0]))
    # model = create_model(len(X_train[0]))
     model = create_lstm_bidirectional(len(X_train[0])) 
     # checkpoint
